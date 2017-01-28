@@ -13,8 +13,8 @@ SOCKET client_init(char * server, int port){
     SOCKADDR_IN sin = { 0 }; /* initialise la structure avec des 0 */
     const char *hostname = server;
 
-    hostinfo = gethostbyname(hostname); /* on récupère les informations de l'hôte auquel on veut se connecter */
-    if (hostinfo == NULL) /* l'hôte n'existe pas */
+    hostinfo = gethostbyname(hostname); /* on rï¿½cupï¿½re les informations de l'hï¿½te auquel on veut se connecter */
+    if (hostinfo == NULL) /* l'hï¿½te n'existe pas */
     {
         fprintf (stderr, "Unknown host %s.\n", hostname);
         exit(EXIT_FAILURE);

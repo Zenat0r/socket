@@ -1,9 +1,9 @@
-#ifdef WIN32 /* si vous êtes sous Windows */
+#ifdef WIN32 /* si vous ï¿½tes sous Windows */
 
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib")
 
-#elif defined (linux) /* si vous êtes sous Linux */
+#elif defined (linux) /* si vous ï¿½tes sous Linux */
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -19,7 +19,7 @@ typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef struct in_addr IN_ADDR;
 
-#else /* sinon vous êtes sur une plateforme non supportée */
+#else /* sinon vous ï¿½tes sur une plateforme non supportï¿½e */
 
 #error not defined for this platform
 
