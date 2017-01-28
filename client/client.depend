@@ -1,0 +1,38 @@
+# depslib dependency file v1.0
+1484582179 source:c:\users\csier\documents\pro\eilco\reseau\tchat\server\functions.c
+	"inport.h"
+
+1484582179 
+
+1484599806 c:\users\csier\documents\pro\eilco\reseau\tchat\server\inport.h
+	<winsock2.h>
+	<sys/types.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<arpa/inet.h>
+	<errno.h>
+	<unistd.h>
+	<netdb.h>
+
+1484599806 
+
+1484597939 source:c:\users\csier\documents\pro\eilco\reseau\tchat\client\main.c
+	<stdio.h>
+	<stdlib.h>
+	"../server/inport.h"
+
+1484597939 /inport.h"
+
+1484582180 source:/media/CLEFTBLEU/tchat/server/functions.c
+	"inport.h"
+
+1484599808 /media/CLEFTBLEU/tchat/server/inport.h
+	<winsock2.h>
+	<sys/types.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<arpa/inet.h>
+	<errno.h>
+	<unistd.h>
+	<netdb.h>
+
