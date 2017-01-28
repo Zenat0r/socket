@@ -4,6 +4,11 @@
 #include "inport.h"
 
 #define MAX_C 12
+typedef struct client{
+    SOCKET socket;
+    char * name;
+} Client;
+
 
 SOCKET serveur_init(int port){
     SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -16,6 +21,13 @@ SOCKET serveur_init(int port){
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
     sin.sin_family = AF_INET;
     sin.sin_port = htons(port);
+
+    int yes = 1;
+    if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,&yes, sizeof(int)) == -1)
+    {
+        perror("setsocketopt()");
+        exit(errno);
+    }
 
     if(bind(sock, (SOCKADDR *) &sin, sizeof sin) == SOCKET_ERROR)
     {
@@ -33,10 +45,60 @@ SOCKET serveur_init(int port){
 
     return sock;
 }
-typedef struct client{
-    SOCKET socket;
-    char * name;
-} Client;
+/*void remove(Client * tab, int index, int nbClients){
+    int i;
+    for(i=index; i< nbClients; i++){
+        tab[i] = tab[i+1];
+    }
+}*/
+SOCKET getSocket(char * name, Client * clients, int nbClients){
+    int i;
+    for(i=0; i<nbClients;i++){
+        if(strcmp(name, clients[i].name) == 0) return clients[i].socket;
+    }
+    return 0;
+}
+void cmdManager(char * buffer, Client * clients, int nbClients, int id_client){
+    printf("brice");
+    if(buffer[0] == '-'){
+        if(buffer[1] == 'w'){
+            int i = 3, j=0;
+            char name[25];
+            while(buffer[i] != ' '){
+                name[j]=buffer[i];
+                j++;
+                i++;
+            }
+            i++;
+            char msg[200];
+            j=0;
+            while(buffer[i] != '\0'){
+                msg[j]=buffer[i];
+                i++;
+                j++;
+            }
+            strcpy(buffer,clients[id_client].name);
+            strcat(buffer, "(whisper): ");
+            strcat(buffer, msg);
+            SOCKET sock = getSocket(name, clients, nbClients);
+            for(j=0; j<nbClients; j++){
+                if(sock == clients[j].socket){
+                    send_client(buffer, clients[j].socket);
+                }
+            }
+        }else{
+            strcpy(buffer, "Error: cmd unknown");
+            send_client(buffer, clients[id_client].socket);
+        }
+    }else{
+        int j;
+        for(j=0; j<nbClients; j++){
+            if(clients[id_client].socket != clients[j].socket){
+                send_client(buffer, clients[j].socket);
+            }
+        }
+    }
+}
 int main()
 {
     /*WSADATA WSAData;
@@ -52,7 +114,7 @@ int main()
     Client clients[MAX_C];
     int nbClients = 0;
 
-    char buffer[255];
+    char buffer[SIZE];
 
     while(1){
         FD_ZERO(&set);
@@ -97,15 +159,16 @@ int main()
                 if(FD_ISSET(clients[i].socket, &set)){
                     if(recv_client(buffer, clients[i].socket) == 1){
                         close(clients[i].socket);
+                        nbClients--;
+                        /*remove(clients, i, nbClients);*/
                         break;
                     }else{
                         printf("%s\n", buffer);
-                        for(j=0; j<nbClients && j!=i; j++){
-                            send_client(buffer, clients[j].socket);
-
-                        }
+                        char lol[50];
+                        strcpy(lol, buffer);
+                        printf("%c", lol[0]);
+                        cmdManager(buffer, clients, nbClients, i);
                     }
-                    break;
                 }
             }
         }
@@ -123,6 +186,7 @@ int main()
         exit(errno);
     }
     printf("Serveur accepte socket !\n");*/
+
 
     int i;
     for(i=0;i<nbClients;i++){

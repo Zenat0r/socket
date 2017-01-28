@@ -25,5 +25,6 @@ typedef struct in_addr IN_ADDR;
 
 #endif
 
-void send_client(char * buffer, SOCKET csock);
+void send_client(const char * buffer, SOCKET csock);
 int recv_client(char * buffer, SOCKET csock);
+#define SIZE 255

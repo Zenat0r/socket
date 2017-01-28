@@ -41,13 +41,12 @@ int main()
 
     fd_set set;
 
-    char buffer[1024];
-    char pseudo[255];
+    char buffer[SIZE];
 
     printf("Entrez un pseudo :\n");
-    scanf("%s", pseudo);
+    scanf("%s", buffer);
 
-    send_client(pseudo, clientSocket);
+    send_client(buffer, clientSocket);
     recv_client(buffer, clientSocket);
 
     printf("%s\n", buffer);
@@ -60,16 +59,24 @@ int main()
             perror("select()");
             exit(errno);
         }
-        if(FD_ISSET(STDIN_FILENO), &set)){
-            printf("%s: ", pseudo);
-            scanf("%s", buffer);
+        if(FD_ISSET(STDIN_FILENO, &set)){
+            fgets(buffer, SIZE - 1, stdin);
+            {
+                char *p = NULL;
+                p = strstr(buffer, "\n");
+                if(p!=NULL){
+                    *p = 0;
+                }else{
+                    buffer[SIZE - 1] = 0;
+                }
+            }
             send_client(buffer, clientSocket);
         }else if(FD_ISSET(clientSocket, &set)){
-            if(recv_client(buffer, clientSocket)){
+            if(recv_client(buffer, clientSocket) == 1){
                 printf("Connection lost");
-                closesocket(clientSocket);
+                close(clientSocket);
             }
-            printf("user: %s\n", buffer);
+            printf("%s\n", buffer);
         }
 
     }
