@@ -42,11 +42,12 @@ int main()
     fd_set set;
 
     char buffer[SIZE];
+    char name[20];
 
     printf("Entrez un pseudo :\n");
-    scanf("%s", buffer);
+    scanf("%s", name);
 
-    send_client(buffer, clientSocket);
+    send_client(name, clientSocket);
     recv_client(buffer, clientSocket);
 
     printf("%s\n", buffer);
@@ -77,6 +78,7 @@ int main()
                 close(clientSocket);
             }
             printf("%s\n", buffer);
+            fflush(stdout);
         }
 
     }

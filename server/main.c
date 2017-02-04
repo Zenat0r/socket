@@ -4,9 +4,12 @@
 #include "inport.h"
 
 #define MAX_C 12
+#define PASSWORD_ADMIN "May The Force Be With You"
 typedef struct client{
     SOCKET socket;
-    char * name;
+    char name[20];
+    int isAdmin;
+    int nbMessages;
 } Client;
 
 
@@ -34,7 +37,7 @@ SOCKET serveur_init(int port){
         perror("bind()");
         exit(errno);
     }
-    printf("Serveur li� !\n");
+    printf("Serveur li� !\n");
 
     if(listen(sock, MAX_C) == SOCKET_ERROR)
     {
@@ -58,45 +61,100 @@ SOCKET getSocket(char * name, Client * clients, int nbClients){
     }
     return 0;
 }
-void cmdManager(char * buffer, Client * clients, int nbClients, int id_client){
-    printf("brice");
+void cmdManager(char buffer[], Client * clients, int nbClients, int id_client){
+    printf("!!!!%s!!!!", buffer);
     if(buffer[0] == '-'){
-        if(buffer[1] == 'w'){
-            int i = 3, j=0;
-            char name[25];
-            while(buffer[i] != ' '){
-                name[j]=buffer[i];
-                j++;
-                i++;
-            }
-            i++;
-            char msg[200];
-            j=0;
-            while(buffer[i] != '\0'){
-                msg[j]=buffer[i];
-                i++;
-                j++;
-            }
-            strcpy(buffer,clients[id_client].name);
-            strcat(buffer, "(whisper): ");
-            strcat(buffer, msg);
-            SOCKET sock = getSocket(name, clients, nbClients);
-            for(j=0; j<nbClients; j++){
-                if(sock == clients[j].socket){
-                    send_client(buffer, clients[j].socket);
+        switch(buffer[1]){
+            case 'w':
+                ;
+                int i = 3, j=0;
+                char name[25];
+                while(buffer[i] != ' '){
+                    name[j]=buffer[i];
+                    j++;
+                    i++;
                 }
-            }
-        }else{
-            strcpy(buffer, "Error: cmd unknown");
-            send_client(buffer, clients[id_client].socket);
+                i++;
+                char msg[200];
+                j=0;
+                while(buffer[i] != '\0'){
+                    msg[j]=buffer[i];
+                    i++;
+                    j++;
+                }
+                strcpy(buffer,clients[id_client].name);
+                strcat(buffer, "(whisper): ");
+                strcat(buffer, msg);
+                SOCKET sock = getSocket(name, clients, nbClients);
+                for(j=0; j<nbClients; j++){
+                    if(sock == clients[j].socket){
+                        send_client(buffer, clients[j].socket);
+                    }
+                }
+                clients[id_client].nbMessages++;
+                break;
+            case 'n':
+                strcpy(buffer,"Les utilisateurs connectés sont : ");
+                int k=0;
+                for(k=0;k<nbClients;k++){
+                    strcat(buffer,clients[k].name);
+                    strcat(buffer,"\n");
+                }
+                send_client(buffer, clients[id_client].socket);
+                break;
+            case 'i':
+                if(clients[id_client].isAdmin==1){
+                    int l = 3, m=0;
+                    char user[25];
+                    while(buffer[l] != ' '){
+                        user[m]=buffer[l];
+                        m++;
+                        l++;
+                    }
+                    for(m=0;m<nbClients;m++){
+                        if(strcmp(clients[m].name,user)==0){
+                            strcpy(buffer,"Les statistiques de ");
+                            strcat(buffer,user);
+                            strcat(buffer," sont : \n Nombre de messages : ");
+                            strcat(buffer,clients[m].nbMessages);
+                            send_client(buffer,clients[id_client].socket);
+                        }
+                    }
+                }else{
+                    strcpy(buffer,"Vous n'êtes pas autorisé à utiliser cette commande \n");
+                    send_client(buffer,clients[id_client].socket);
+                }
+                break;
+            case 'c':
+                strcpy(buffer,"Entrez le mot de passe administrateur : \n");
+                send_client(buffer,clients[id_client].socket);
+                recv_client(buffer,clients[id_client].socket);
+                if(strcmp(buffer,PASSWORD_ADMIN)==0){
+                    clients[id_client].isAdmin=1;
+                    strcpy(buffer,"\nVous êtes connecté en tant qu'administrateur.");
+                }else{
+                    strcpy(buffer,"\nMot de passe incorrect");
+                }
+                send_client(buffer,clients[id_client].socket);
+                break;
+            default :
+                strcpy(buffer, "Error: cmd unknown");
+                send_client(buffer, clients[id_client].socket);
+                break;
         }
     }else{
         int j;
+        char tmp[SIZE];
+        printf("???");
         for(j=0; j<nbClients; j++){
             if(clients[id_client].socket != clients[j].socket){
-                send_client(buffer, clients[j].socket);
+                strcat(tmp, clients[id_client].name);
+                strcat(tmp, ": ");
+                strcat(tmp, buffer);
+                send_client(tmp, clients[j].socket);
             }
         }
+        clients[id_client].nbMessages++;
     }
 }
 int main()
@@ -151,7 +209,9 @@ int main()
             printf("Client %s est connecte\n", buffer);
             send_client("Vous etez bien connete\n", csock);
             clients[nbClients].socket = csock;
-            clients[nbClients].name = buffer;
+            clients[nbClients].isAdmin = 0;
+            clients[nbClients].nbMessages = 0;
+            strcpy(clients[nbClients].name, buffer);
             nbClients++;
         }else{
             int i, j;
@@ -163,11 +223,8 @@ int main()
                         /*remove(clients, i, nbClients);*/
                         break;
                     }else{
-                        printf("%s\n", buffer);
-                        char lol[50];
-                        strcpy(lol, buffer);
-                        printf("%c", lol[0]);
                         cmdManager(buffer, clients, nbClients, i);
+                        fflush(stdout);
                     }
                 }
             }
