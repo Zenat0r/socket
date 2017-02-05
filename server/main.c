@@ -48,12 +48,12 @@ SOCKET serveur_init(int port){
 
     return sock;
 }
-/*void remove(Client * tab, int index, int nbClients){
+void remove_client(Client * tab, int index, int nbClients){
     int i;
     for(i=index; i< nbClients; i++){
         tab[i] = tab[i+1];
     }
-}*/
+}
 SOCKET getSocket(char * name, Client * clients, int nbClients){
     int i;
     for(i=0; i<nbClients;i++){
@@ -62,7 +62,6 @@ SOCKET getSocket(char * name, Client * clients, int nbClients){
     return 0;
 }
 void cmdManager(char buffer[], Client * clients, int nbClients, int id_client){
-    printf("!!!!%s!!!!", buffer);
     if(buffer[0] == '-'){
         switch(buffer[1]){
             case 'w':
@@ -116,7 +115,7 @@ void cmdManager(char buffer[], Client * clients, int nbClients, int id_client){
                             strcpy(buffer,"Les statistiques de ");
                             strcat(buffer,user);
                             strcat(buffer," sont : \n Nombre de messages : ");
-                            strcat(buffer,clients[m].nbMessages);
+                            strcat(buffer, clients[m].nbMessages);
                             send_client(buffer,clients[id_client].socket);
                         }
                     }
@@ -145,6 +144,7 @@ void cmdManager(char buffer[], Client * clients, int nbClients, int id_client){
     }else{
         int j;
         char tmp[SIZE];
+        strcpy(tmp, "");
         printf("???");
         for(j=0; j<nbClients; j++){
             if(clients[id_client].socket != clients[j].socket){
@@ -206,21 +206,32 @@ int main()
             max = (csock>max) ? csock : max;
 
             recv_client(buffer, csock);
-            printf("Client %s est connecte\n", buffer);
-            send_client("Vous etez bien connete\n", csock);
+            printf("Client %s est connecté\n", buffer);
+            send_client("Vous etez bien connecté\n", csock);
             clients[nbClients].socket = csock;
             clients[nbClients].isAdmin = 0;
             clients[nbClients].nbMessages = 0;
             strcpy(clients[nbClients].name, buffer);
             nbClients++;
+            
+            strcpy(buffer, clients[nbClients - 1].name);
+            strcat(buffer, " vient de se connecter");
+            
+            int j;
+            for(j=0; j<nbClients; j++){
+                if(clients[nbClients - 1].socket != clients[j].socket){                    
+                    send_client(buffer, clients[j].socket);
+                }
+            }
         }else{
             int i, j;
             for(i=0; i<nbClients; i++){
                 if(FD_ISSET(clients[i].socket, &set)){
                     if(recv_client(buffer, clients[i].socket) == 1){
+                        printf("%s c'est deco", clients[i].name);
                         close(clients[i].socket);
                         nbClients--;
-                        /*remove(clients, i, nbClients);*/
+                        remove_client(clients, i, nbClients);                        
                         break;
                     }else{
                         cmdManager(buffer, clients, nbClients, i);

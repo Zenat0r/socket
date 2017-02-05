@@ -44,8 +44,10 @@ int main()
     char buffer[SIZE];
     char name[20];
 
-    printf("Entrez un pseudo :\n");
-    scanf("%s", name);
+    do{
+        printf("Entrez un pseudo :\n");
+        scanf("%s", name);
+    }while(name[0]=='@');
 
     send_client(name, clientSocket);
     recv_client(buffer, clientSocket);
@@ -71,6 +73,7 @@ int main()
                     buffer[SIZE - 1] = 0;
                 }
             }
+            if(strcmp(buffer, "bye") == 0) break;
             send_client(buffer, clientSocket);
         }else if(FD_ISSET(clientSocket, &set)){
             if(recv_client(buffer, clientSocket) == 1){
@@ -80,7 +83,6 @@ int main()
             printf("%s\n", buffer);
             fflush(stdout);
         }
-
     }
 
     close(clientSocket);
