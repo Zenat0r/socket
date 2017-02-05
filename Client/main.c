@@ -50,9 +50,14 @@ int main()
     }while(name[0]=='@');
 
     send_client(name, clientSocket);
-    recv_client(buffer, clientSocket);
+    recv_client(buffer, clientSocket);    
 
     printf("%s\n", buffer);
+    fflush(stdout);
+    if(strcmp(buffer, "Pseudo non valide") == 0){
+        close(clientSocket);
+        return 0;
+    }
 
     while(1){
         FD_ZERO(&set);
@@ -73,8 +78,8 @@ int main()
                     buffer[SIZE - 1] = 0;
                 }
             }
-            if(strcmp(buffer, "bye") == 0) break;
             send_client(buffer, clientSocket);
+            if(strcmp(buffer, "@exit") == 0) break;
         }else if(FD_ISSET(clientSocket, &set)){
             if(recv_client(buffer, clientSocket) == 1){
                 printf("Connection lost");

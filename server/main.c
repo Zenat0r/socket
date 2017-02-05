@@ -37,7 +37,7 @@ SOCKET serveur_init(int port){
         perror("bind()");
         exit(errno);
     }
-    printf("Serveur li� !\n");
+    printf("Serveur lie !\n");
 
     if(listen(sock, MAX_C) == SOCKET_ERROR)
     {
@@ -48,105 +48,111 @@ SOCKET serveur_init(int port){
 
     return sock;
 }
-void remove_client(Client * tab, int index, int nbClients){
+void remove_client(Client * tab, int index, int * nbClients){
     int i;
-    for(i=index; i< nbClients; i++){
+    for(i=index; i< *nbClients; i++){
         tab[i] = tab[i+1];
     }
+    *nbClients--;
 }
-SOCKET getSocket(char * name, Client * clients, int nbClients){
+SOCKET getSocket(char * name, Client * clients, int * nbClients){
     int i;
-    for(i=0; i<nbClients;i++){
+    for(i=0; i< *nbClients;i++){
         if(strcmp(name, clients[i].name) == 0) return clients[i].socket;
     }
-    return 0;
+    return -1;
 }
-void cmdManager(char buffer[], Client * clients, int nbClients, int id_client){
-    if(buffer[0] == '-'){
-        switch(buffer[1]){
-            case 'w':
-                ;
-                int i = 3, j=0;
-                char name[25];
-                while(buffer[i] != ' '){
-                    name[j]=buffer[i];
-                    j++;
-                    i++;
-                }
+void cmdManager(char buffer[], Client * clients, int * nbClients, int id_client){
+    if(strlen(buffer) > SIZE){
+        send_client("Message trop volumineux", clients[id_client].socket);
+    }
+    if(buffer[0] == '@'){
+        int cptcmd = 1;
+        char cmd[10];
+        while(buffer[cptcmd] != ' '){
+            cmd[cptcmd - 1] = buffer[cptcmd];
+            cptcmd++;
+        }
+        cmd[cptcmd-1] = '\0';
+        if(strcmp(cmd, "exit") == 0){
+            printf("%s c'est deco\n", clients[id_client].name);
+            fflush(stdout);
+            close(clients[id_client].socket);            
+            remove_client(clients, id_client, nbClients); 
+        }else if(strcmp(cmd, "whisper") == 0){
+            int i = cptcmd + 1, j=0;
+            char name[25];
+            while(buffer[i] != ' '){
+                name[j]=buffer[i];
+                j++;
                 i++;
-                char msg[200];
-                j=0;
-                while(buffer[i] != '\0'){
-                    msg[j]=buffer[i];
-                    i++;
-                    j++;
-                }
-                strcpy(buffer,clients[id_client].name);
-                strcat(buffer, "(whisper): ");
-                strcat(buffer, msg);
-                SOCKET sock = getSocket(name, clients, nbClients);
-                for(j=0; j<nbClients; j++){
+            }
+            name[j] = '\0';
+            i++;
+            char msg[200];
+            j=0;
+            while(buffer[i] != '\0'){
+                msg[j]=buffer[i];
+                i++;
+                j++;
+            }
+            msg[j] = '\0';
+            strcpy(buffer,clients[id_client].name);
+            strcat(buffer, "(whisper): ");
+            strcat(buffer, msg);
+            SOCKET sock = getSocket(name, clients, nbClients);
+            if(sock != -1){
+                for(j=0; j<*nbClients; j++){
                     if(sock == clients[j].socket){
                         send_client(buffer, clients[j].socket);
                     }
                 }
-                clients[id_client].nbMessages++;
-                break;
-            case 'n':
-                strcpy(buffer,"Les utilisateurs connectés sont : ");
-                int k=0;
-                for(k=0;k<nbClients;k++){
-                    strcat(buffer,clients[k].name);
-                    strcat(buffer,"\n");
-                }
-                send_client(buffer, clients[id_client].socket);
-                break;
-            case 'i':
-                if(clients[id_client].isAdmin==1){
-                    int l = 3, m=0;
-                    char user[25];
-                    while(buffer[l] != ' '){
-                        user[m]=buffer[l];
-                        m++;
-                        l++;
-                    }
-                    for(m=0;m<nbClients;m++){
-                        if(strcmp(clients[m].name,user)==0){
-                            strcpy(buffer,"Les statistiques de ");
-                            strcat(buffer,user);
-                            strcat(buffer," sont : \n Nombre de messages : ");
-                            strcat(buffer, clients[m].nbMessages);
-                            send_client(buffer,clients[id_client].socket);
-                        }
-                    }
-                }else{
-                    strcpy(buffer,"Vous n'êtes pas autorisé à utiliser cette commande \n");
+            }else{
+                send_client("Client inexistant", clients[id_client].socket);
+            }
+            clients[id_client].nbMessages++;
+        }else if(strcmp(cmd, "list") == 0){
+            strcpy(buffer,"Les utilisateurs connectés sont :\n");
+            int k=0;
+            for(k=0;k<*nbClients;k++){
+                strcat(buffer,clients[k].name);
+                strcat(buffer,"\n");
+            }
+            send_client(buffer, clients[id_client].socket);
+        }else if(strcmp(cmd, "stats") == 0){
+            if(clients[id_client].isAdmin==1){
+                int m;
+                for(m=0;m<*nbClients;m++){
+                    buffer = strcpy(buffer,"Les statistiques de ");
+                    strcat(buffer,clients[m].name);
+                    strcat(buffer," sont Nombre de messages : ");
+                    buffer = buffer + clients[m].nbMessages;
                     send_client(buffer,clients[id_client].socket);
                 }
-                break;
-            case 'c':
-                strcpy(buffer,"Entrez le mot de passe administrateur : \n");
+            }else{
+                strcpy(buffer,"Vous n'êtes pas autorisé à utiliser cette commande \n");
                 send_client(buffer,clients[id_client].socket);
-                recv_client(buffer,clients[id_client].socket);
-                if(strcmp(buffer,PASSWORD_ADMIN)==0){
-                    clients[id_client].isAdmin=1;
-                    strcpy(buffer,"\nVous êtes connecté en tant qu'administrateur.");
-                }else{
-                    strcpy(buffer,"\nMot de passe incorrect");
-                }
-                send_client(buffer,clients[id_client].socket);
-                break;
-            default :
-                strcpy(buffer, "Error: cmd unknown");
-                send_client(buffer, clients[id_client].socket);
-                break;
+            }
+        }else if(strcmp(cmd, "auth") == 0){
+            strcpy(buffer,"Entrez le mot de passe administrateur : \n");
+            send_client(buffer,clients[id_client].socket);
+            recv_client(buffer,clients[id_client].socket);
+            if(strcmp(buffer,PASSWORD_ADMIN)==0){
+                clients[id_client].isAdmin=1;
+                strcpy(buffer,"\nVous êtes connecté en tant qu'administrateur.");
+            }else{
+                strcpy(buffer,"\nMot de passe incorrect");
+            }
+            send_client(buffer,clients[id_client].socket);
+        }else{
+            strcpy(buffer, "Error: cmd unknown");
+            send_client(buffer, clients[id_client].socket);               
         }
     }else{
         int j;
         char tmp[SIZE];
         strcpy(tmp, "");
-        printf("???");
-        for(j=0; j<nbClients; j++){
+        for(j=0; j<*nbClients; j++){
             if(clients[id_client].socket != clients[j].socket){
                 strcat(tmp, clients[id_client].name);
                 strcat(tmp, ": ");
@@ -156,6 +162,15 @@ void cmdManager(char buffer[], Client * clients, int nbClients, int id_client){
         }
         clients[id_client].nbMessages++;
     }
+}
+int duplicated_name(char buffer[], Client * clients, int * nbClients){
+    int i;
+    for(i=0; i< *nbClients; i++){
+        if(strcmp(buffer, clients[i].name) == 0){
+            return 1;
+        }
+    }
+    return 0;
 }
 int main()
 {
@@ -206,35 +221,39 @@ int main()
             max = (csock>max) ? csock : max;
 
             recv_client(buffer, csock);
-            printf("Client %s est connecté\n", buffer);
-            send_client("Vous etez bien connecté\n", csock);
-            clients[nbClients].socket = csock;
-            clients[nbClients].isAdmin = 0;
-            clients[nbClients].nbMessages = 0;
-            strcpy(clients[nbClients].name, buffer);
-            nbClients++;
-            
-            strcpy(buffer, clients[nbClients - 1].name);
-            strcat(buffer, " vient de se connecter");
-            
-            int j;
-            for(j=0; j<nbClients; j++){
-                if(clients[nbClients - 1].socket != clients[j].socket){                    
-                    send_client(buffer, clients[j].socket);
+            if(duplicated_name(buffer, clients, &nbClients)){
+                send_client("Pseudo non valide", csock);
+            }else{
+                printf("Client %s est connecté\n", buffer);
+                send_client("Vous etez bien connecté\n", csock);
+                clients[nbClients].socket = csock;
+                clients[nbClients].isAdmin = 0;
+                clients[nbClients].nbMessages = 0;
+                strcpy(clients[nbClients].name, buffer);
+                nbClients++;
+
+                strcpy(buffer, clients[nbClients - 1].name);
+                strcat(buffer, " vient de se connecter");
+
+                int j;
+                for(j=0; j<nbClients; j++){
+                    if(clients[nbClients - 1].socket != clients[j].socket){                    
+                        send_client(buffer, clients[j].socket);
+                    }
                 }
-            }
+            }            
         }else{
             int i, j;
             for(i=0; i<nbClients; i++){
                 if(FD_ISSET(clients[i].socket, &set)){
                     if(recv_client(buffer, clients[i].socket) == 1){
-                        printf("%s c'est deco", clients[i].name);
+                        printf("%s connection lost", clients[i].name);
+                        fflush(stdout);
                         close(clients[i].socket);
-                        nbClients--;
-                        remove_client(clients, i, nbClients);                        
+                        remove_client(clients, i, &nbClients);                        
                         break;
                     }else{
-                        cmdManager(buffer, clients, nbClients, i);
+                        cmdManager(buffer, clients, &nbClients, i);
                         fflush(stdout);
                     }
                 }
