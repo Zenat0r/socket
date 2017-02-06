@@ -11,6 +11,7 @@ typedef struct client{
     char name[20];
     int isAdmin;
     int nbMessages;
+    int error;
     time_t time_connect;
 } Client;
 
@@ -57,7 +58,7 @@ void remove_client(Client * tab, int index, int * nbClients, int * max){
     }
     
     *nbClients = *nbClients - 1;
-    printf("%d \n",*(nbClients));
+    printf("Nombre de client restant %d \n",*(nbClients));
     *max = 0;
     for(i=0; i< *nbClients; i++){
         if(*max<tab[i].socket){
@@ -119,6 +120,7 @@ void cmdManager(char buffer[], Client * clients, int * nbClients, int id_client,
                 }
             }else{
                 send_client("Client inexistant", clients[id_client].socket);
+                clients[id_client].error++;
             }
             clients[id_client].nbMessages++;
         }else if(strcmp(cmd, "list") == 0){
@@ -142,11 +144,15 @@ void cmdManager(char buffer[], Client * clients, int * nbClients, int id_client,
                     sprintf(buff,"%f", difftime(time(NULL), clients[m].time_connect));
                     strcat(buffer,"\n --Temps de connexion (en sec) : ");
                     strcat(buffer,buff);
+                    sprintf(buff,"%d", clients[m].error);
+                    strcat(buffer,"\n --Nombre d'erreurs : ");
+                    strcat(buffer,buff);
                     send_client(buffer,clients[id_client].socket);
                 }
             }else{
                 strcpy(buffer,"Vous n'êtes pas autorisé à utiliser cette commande \n");
                 send_client(buffer,clients[id_client].socket);
+                clients[id_client].error++;
             }
         }else if(strcmp(cmd, "kick") == 0){
             if(clients[id_client].isAdmin==1){
@@ -174,11 +180,13 @@ void cmdManager(char buffer[], Client * clients, int * nbClients, int id_client,
                 }else{
                     strcpy(buffer, "L'utilisateur spécifié n'existe pas");
                     send_client(buffer, clients[id_client].socket);
+                    clients[id_client].error++;
                 }
                 fflush(stdout);
             }else{
                 strcpy(buffer,"Vous n'êtes pas autorisé à utiliser cette commande \n");
                 send_client(buffer,clients[id_client].socket);
+                clients[id_client].error++;
             }
         }else if(strcmp(cmd, "auth") == 0){
             strcpy(buffer,"Entrez le mot de passe administrateur : \n");
@@ -189,11 +197,13 @@ void cmdManager(char buffer[], Client * clients, int * nbClients, int id_client,
                 strcpy(buffer,"\nVous êtes connecté en tant qu'administrateur.\n Nouvelles commandes disponibles :\n @stats Affiche les stats de tous le monde\n @kick suivi du pseudo de l'utilisateur a deconnecter");
             }else{
                 strcpy(buffer,"\nMot de passe incorrect");
+                clients[id_client].error++;
             }
             send_client(buffer,clients[id_client].socket);
         }else{
             strcpy(buffer, "Error: cmd unknown");
-            send_client(buffer, clients[id_client].socket);               
+            send_client(buffer, clients[id_client].socket);
+            clients[id_client].error++;
         }
     }else{
         int j;
@@ -276,6 +286,7 @@ int main()
                 clients[nbClients].socket = csock;
                 clients[nbClients].isAdmin = 0;
                 clients[nbClients].nbMessages = 0;
+                clients[nbClients].error = 0;
                 clients[nbClients].time_connect = time(NULL);
                 strcpy(clients[nbClients].name, buffer);
                 nbClients++;
