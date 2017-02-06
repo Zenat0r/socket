@@ -86,6 +86,7 @@ int main()
                 close(clientSocket);
             }
             printf("%s\n", buffer);
+            if(strcmp(buffer, "Vous avez ete kick") == 0) break;            
             fflush(stdout);
         }
     }
